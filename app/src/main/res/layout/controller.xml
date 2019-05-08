@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/displayable_name"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:text="Displayable name"
+        android:textAlignment="center"/>
+
+    <TextView
+        android:id="@+id/room"
+        android:layout_width="76dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/displayable_name"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="6dp"
+        android:text="Room: " />
+
+    <TextView
+        android:id="@+id/room_name"
+        android:layout_width="105dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/displayable_name"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="6dp"
+        android:layout_toEndOf="@+id/room"
+        android:text="Room name" />
+
+    <TextView
+        android:id="@+id/equipment"
+        android:layout_width="76dp"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/room"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="6dp"
+        android:text="Equipment: " />
+
+    <TextView
+        android:id="@+id/equipment_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/room_name"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="6dp"
+        android:layout_toEndOf="@+id/equipment"
+        android:text="Equipment name" />
+
+    <Switch
+        android:id="@+id/status_switch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/displayable_name"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="11dp" />
+
+</RelativeLayout>
