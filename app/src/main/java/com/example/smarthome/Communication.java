@@ -10,12 +10,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.FormBody;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.RequestBody;
 
 public class Communication {
     private static final String TAG = "Communication";
@@ -26,7 +28,23 @@ public class Communication {
 
     public static OkHttpClient getClient(){
         if(client == null){
-            client = new OkHttpClient();
+            OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+            clientBuilder.cookieJar(new CookieJar() {
+                private List<Cookie> cookies;
+
+                @Override
+                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                    this.cookies = cookies;
+                }
+
+                @Override
+                public List<Cookie> loadForRequest(HttpUrl url) {
+                    if(cookies != null)
+                        return cookies;
+                    return new ArrayList<Cookie>();
+                }
+            });
+            client = clientBuilder.build();
         }
         return client;
     }
@@ -39,64 +57,63 @@ public class Communication {
         client.newCall(request).enqueue(callback);
     }
 
-    public static boolean connection(final String ip, final String port){
+    private static void postJsonStringResponse(String url, Callback callback, List<Params> params){
+        client = getClient();
+        FormBody.Builder formBuilder = new FormBody.Builder();
+                for(int i = 0; i < params.size(); i++){
+                    Params param = params.get(i);
+                    formBuilder.add(param.getKey(),param.getParam());
+                }
+        RequestBody formbody = formBuilder.build();
+        Request request = new Request.Builder()
+                .url(url)
+                .post(formbody)
+                .build();
+        Log.i(TAG, String.valueOf(request));
+        client.newCall(request).enqueue(callback);
+    }
+
+    public static void connection(final String ip, final String port, String login, String pass, Callback callback){
         Communication.ip = ip;
         Communication.port = port;
-        String url = "http://" + ip + ":" + port + "/connection";
-        final boolean[] connectionStatus = {false};
-        getJsonStringResponse(url, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.e(TAG,"Connection failed", e);
-                e.printStackTrace();
-            }
+        Log.i(TAG,"connection address:"+ Communication.ip + ":" +Communication.port);
+//        String url = "http://" + ip + ":" + port + "/connection";
+        String url = "http://" + ip + ":" + port + "/login/mobile";
+        Log.i(TAG,"connection url:" + url);
 
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if(response.isSuccessful()) {
-                    String result = response.body().string();
-                    try {
-                        JSONObject conn = new JSONObject(result);
-                        connectionStatus[0] = conn.getBoolean("connection_status");
-                    }catch (JSONException joe){
-                        Log.e(TAG, "Ошибка обработки JSON", joe);
-                    }
-                }
-            }
-        });
-        return connectionStatus[0];
+        List params = new ArrayList<Params>();
+        params.add(new Params("login",login));
+        params.add(new Params("password",pass));
+        postJsonStringResponse(url, callback, params);
+
+//        getJsonStringResponse(url, callback);
+
     }
 
-    public static List<Controller> getList(){
-        String url = "http://" + Communication.ip + ":" + Communication.port + "/installation-scheme";
+    public static void getList(Callback callback){
+        Log.i(TAG,"get list address:" + Communication.ip + ":" + Communication.port);
+//        String url = "http://" + Communication.ip + ":" + Communication.port + "/installation-scheme";
+        String url = "http://" + Communication.ip + ":" + Communication.port + "/installation-scheme/mobile";
+        Log.i(TAG,"get list url:" + url);
 
-        List<Controller> controllers = new ArrayList<>();
-
-        getJsonStringResponse(url, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Log.e(TAG,"Connection failed", e);
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String jsonString = response.body().string();
-                try {
-                    JSONObject jsonBody = new JSONObject(jsonString);
-                    parseItems(controllers, jsonBody);
-                }catch (JSONException joe){
-                    Log.e(TAG, "Ошибка обработки JSON", joe);
-                }
-            }
-        });
-        return controllers;
+        getJsonStringResponse(url,callback);
     }
 
-    private static void parseItems(List<Controller> items, JSONObject jsonBody) throws
+    public static void changeStatus(Controller controller,Callback callback){
+        Log.i(TAG,"change status address:" + Communication.ip + ":" + Communication.port);
+        int id = controller.getId();
+        String status = controller.getStatus() == "1" ? "1" : "0";
+//        String url = "http://" + Communication.ip + ":" + Communication.port + "/installation-scheme/"+ id + "/" + status + "/change-status";
+        String url = "http://" + Communication.ip + ":" + Communication.port + "/installation-scheme/"+ id + "/" + status + "/change-status/mobile";
+        Log.i(TAG,"change status url:" + url);
+
+        getJsonStringResponse(url,callback);
+    }
+
+    public static void parseItems(List<Controller> items, JSONObject jsonBody) throws
             IOException, JSONException {
         JSONArray controllersArray = jsonBody.getJSONArray("schemes");
-
+        Log.i(TAG,"inside parser");
         for (int i = 0; i < controllersArray.length(); i++) {
             JSONObject controllerJsonObject = controllersArray.getJSONObject(i);
             Controller item = new Controller();
@@ -104,8 +121,35 @@ public class Communication {
             item.setDisplayable_name(controllerJsonObject.getString("displayable_name"));
             item.setRoom_name(controllerJsonObject.getString("room_name"));
             item.setEquipment_name(controllerJsonObject.getString("equipment_name"));
-            item.setStatus(controllerJsonObject.getBoolean("status"));
+            item.setStatus(controllerJsonObject.getInt("status"));
+            Log.i(TAG, "item-" + i);
             items.add(item);
+        }
+    }
+
+    private static class Params {
+        private String key;
+        private String param;
+
+        public Params(String key, String param) {
+            this.key = key;
+            this.param = param;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public void setKey(String key) {
+            this.key = key;
+        }
+
+        public String getParam() {
+            return param;
+        }
+
+        public void setParam(String param) {
+            this.param = param;
         }
     }
 }

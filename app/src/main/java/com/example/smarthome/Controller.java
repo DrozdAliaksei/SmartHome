@@ -43,7 +43,9 @@ public class Controller {
         return status;
     }
 
-    public void setStatus(boolean status) {
-        this.status = status;
+    public String getStatus() { return status ? "1" : "0";}
+
+    public void setStatus(int status) {
+        this.status = status == 0 ? false : true;
     }
 }

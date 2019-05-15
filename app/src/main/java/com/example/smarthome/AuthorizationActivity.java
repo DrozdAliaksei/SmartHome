@@ -17,8 +17,16 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 
 public class AuthorizationActivity extends AppCompatActivity {
     private static final String TAG = "AuthorizationActivity";
@@ -94,8 +102,33 @@ public class AuthorizationActivity extends AppCompatActivity {
                 }
 
                 if (ipcheck && portcheck) {
+                    log = editLogin.getText().toString();
+                    pass = editPassword.getText().toString();
+                    Log.i(TAG,"login:" + log + " password:" + pass);
+                    Communication.connection(ip, port, log, pass, new Callback() {
+                        @Override
+                        public void onFailure(Call call, IOException e) {
+                            Log.e(TAG,"Connection failed", e);
+                            e.printStackTrace();
+                        }
 
-                    connectionStatus(Communication.connection(ip, port));
+                        @Override
+                        public void onResponse(Call call, Response response) throws IOException {
+                            if(response.isSuccessful()) {
+                                Log.i(TAG, String.valueOf(response));
+                                String result = response.body().string();
+                                Log.i(TAG,"response:" + result);
+                                try {
+                                    JSONObject conn = new JSONObject(result);
+                                    String connectionStatus = conn.getString("connection_status");
+                                    connectionStatus(connectionStatus);
+                                    Log.i(TAG,"response: " + connectionStatus);
+                                }catch (JSONException joe){
+                                    Log.e(TAG, "Ошибка обработки JSON", joe);
+                                }
+                            }
+                        }
+                    });
 
                 } else {
                     Toast.makeText(getApplicationContext(), "Connection impossible\nCheck connection data", Toast.LENGTH_LONG).show();
@@ -148,9 +181,9 @@ public class AuthorizationActivity extends AppCompatActivity {
         });
     }
 
-    private void connectionStatus(Boolean data) {
+    private void connectionStatus(String data) {
         Log.i(TAG, "ConnectionStatus inside function - status: " + data);
-        if (data) {
+        if (!data.isEmpty() && data.equals("true")) {
             Log.i(TAG, "Connection done");
             Intent intent = new Intent(AuthorizationActivity.this, ControlPanel.class);
             intent.putExtra("ip", ip);

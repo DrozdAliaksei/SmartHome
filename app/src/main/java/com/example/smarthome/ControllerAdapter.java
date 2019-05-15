@@ -11,8 +11,16 @@ import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 
 public class ControllerAdapter extends RecyclerView.Adapter<ControllerAdapter.ViewHolder>{
     private static final String TAG = "ControllerAdapter";
@@ -44,7 +52,35 @@ public class ControllerAdapter extends RecyclerView.Adapter<ControllerAdapter.Vi
         viewHolder.status.setOnCheckedChangeListener(new Switch.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                Log.i(TAG,item.getDisplayable_name());
+                Log.i(TAG,item.getDisplayable_name() + " " + isChecked);
+                Communication.changeStatus(item, new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        Log.e(TAG,"Connection failed", e);
+                        e.printStackTrace();
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if(response.isSuccessful()) {
+                            String result = response.body().string();
+                            Log.i(TAG,result);
+                            try {
+                                JSONObject jsonBody = new JSONObject(result);
+                                Log.i(TAG,"status before:" + item.getStatus());
+                                JSONObject controller = jsonBody.getJSONObject("controller");
+                                int status = controller.getInt("status");
+                                Log.i(TAG,"status:" + status );
+                                item.setStatus(status);
+                                Log.i(TAG,"status after:" + item.getStatus());
+//                                viewHolder.status.setChecked(item.isStatus());
+
+                            }catch (JSONException joe){
+                                Log.e(TAG, "Ошибка обработки JSON", joe);
+                            }
+                        }
+                    }
+                });
             }
         });
     }
